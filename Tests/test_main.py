@@ -1,6 +1,11 @@
 import unittest
+from unittest.mock import patch
+import io
+import sys
+import contextlib
 
 from src.main import Product, Category
+from io import StringIO
 
 
 class TestProduct(unittest.TestCase):
@@ -10,7 +15,7 @@ class TestProduct(unittest.TestCase):
         product = Product(
             name="Тестовый продукт",
             description="Тестовое описание",
-            price=100.0,
+            price_=100.0,
             quantity=10
         )
         self.assertEqual(product.name, "Тестовый продукт")
@@ -23,7 +28,7 @@ class TestProduct(unittest.TestCase):
         product = Product(
             name="Тестовый продукт",
             description="Тестовое описание",
-            price="100.0",
+            price_="100.0",
             quantity=10
         )
         self.assertEqual(product.price, 100.0)
@@ -34,7 +39,7 @@ class TestProduct(unittest.TestCase):
                 as context:
             Product(name="",
                     description="Тестовое описание",
-                    price=100.0,
+                    price_=100.0,
                     quantity=10)
         self.assertEqual(
             str(context.exception),
@@ -49,7 +54,7 @@ class TestProduct(unittest.TestCase):
             Product(
                 name="Тестовый продукт",
                 description="   ",
-                price=100.0,
+                price_=100.0,
                 quantity=10
             )
         self.assertEqual(
@@ -63,12 +68,60 @@ class TestProduct(unittest.TestCase):
                 as context:
             Product(name="Тестовый продукт",
                     description="",
-                    price=100.0,
+                    price_=100.0,
                     quantity=10)
         self.assertEqual(
             str(context.exception),
             "Описание товара не может быть пустым"
         )
+
+    def test_new_product_valid_data(self):
+        """Тест создания продукта с валидными данными через new_product"""
+        product_data = {
+            'name': 'MacBook Pro',
+            'description': '16-inch, 32GB RAM, 1TB SSD',
+            'price': '250000.0',
+            'quantity': 10
+        }
+        product = Product.new_product(product_data)
+        self.assertEqual(product.name, 'MacBook Pro')
+        self.assertEqual(product.description, '16-inch, 32GB RAM, 1TB SSD')
+        self.assertEqual(product.price, 250000.0)
+        self.assertEqual(product.quantity, 10)
+
+    def test_new_product_missing_name(self):
+        """Тест создания продукта с отсутствующим именем через new_product"""
+        product_data = {
+            'description': '16-inch, 32GB RAM, 1TB SSD',
+            'price': '250000.0',
+            'quantity': 10
+        }
+        with self.assertRaises(ValueError) as context:
+            Product.new_product(product_data)
+        self.assertEqual(str(context.exception), "Имя товара не может быть пустым")
+
+    def test_new_product_invalid_price(self):
+        """Тест создания продукта с некорректной ценой через new_product"""
+        product_data = {
+            'name': 'MacBook Pro',
+            'description': '16-inch, 32GB RAM, 1TB SSD',
+            'price': '-250000.0',
+            'quantity': 10
+        }
+        with self.assertRaises(ValueError) as context:
+            Product.new_product(product_data)
+        self.assertEqual(str(context.exception), "Цена должна быть положительной")
+
+    def test_new_product_missing_description(self):
+        """Тест создания продукта с отсутствующим описанием через new_product"""
+        product_data = {
+            'name': 'MacBook Pro',
+            'price': '250000.0',
+            'quantity': 10
+        }
+        with self.assertRaises(ValueError) as context:
+            Product.new_product(product_data)
+        self.assertEqual(str(context.exception), "Описание товара не может быть пустым")
 
 
 class TestCategory(unittest.TestCase):
@@ -102,17 +155,28 @@ class TestCategory(unittest.TestCase):
     def test_product_count_calculation(self):
         """Тест подсчета общего количества продуктов"""
         self.assertEqual(Category.product_count, 0)
-        self.category.append_product(self.product1)
-        self.category.append_product(self.product2)
+        self.category.add_product(self.product1)
+        self.category.add_product(self.product2)
         Category("Ноутбуки", "Портативные компьютеры", [self.product1])
         self.assertEqual(Category.product_count, 3)
 
     def test_product_removal(self):
         """Тест уменьшения счётчика при удалении продукта"""
-        self.category.append_product(self.product1)
+        self.category.add_product(self.product1)
         initial_count = Category.product_count
         self.category.remove_product(self.product1)
         self.assertEqual(Category.product_count, initial_count - 1)
+        
+    def test_private_products_encapsulation(self):
+        """Проверка невозможности прямого доступа к списку продуктов"""
+        with self.assertRaises(AttributeError):
+            _ = self.category.__products
+
+    def test_products_list_format(self):
+        """Проверка формата списка продуктов"""
+        self.category.add_product(self.product1)
+        expected = "Iphone 15, 210000.0 руб. Остаток: 8 шт."
+        self.assertEqual(self.category.products.strip(), expected)
 
 
 class TestMainExecution(unittest.TestCase):
@@ -142,3 +206,38 @@ class TestMainExecution(unittest.TestCase):
         self.assertIn('Xiaomi Redmi Note 11', output)
         self.assertIn('1024GB, Синий', output)
         self.assertIn('31000.0', output)
+
+    def test_price_setter_valid_value(self):
+        """Проверка установки корректной цены"""
+        product = Product("Тест", "Тест", 100.0, 5)
+        product.price = 200.0
+        self.assertEqual(product.price, 200.0)
+
+    def test_price_setter_invalid_values(self):
+        """Проверка реакции на невалидные значения цены"""
+        product = Product("Тест", "Тест", 100.0, 5)
+        
+        # Тест нулевой цены
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            product.price = 0
+            self.assertEqual(product.price, 100.0)
+            self.assertIn("Цена не должна быть нулевая или отрицательная", buf.getvalue())
+
+        # Тест отрицательной цены
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            product.price = -50
+            self.assertEqual(product.price, 100.0)
+            self.assertIn("Цена не должна быть нулевая или отрицательная", buf.getvalue())
+
+    def test_price_setter_negative_value(self):
+        """Тест сеттера цены с отрицательным значением"""
+        product = Product(
+            name="Test Product",
+            description="Test Description",
+            price_=100.0,
+            quantity=10
+        )
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            product.price = -50.0
+            self.assertIn("Цена не должна быть нулевая или отрицательная", fake_out.getvalue().strip())
+        self.assertEqual(product.price, 100.0)
