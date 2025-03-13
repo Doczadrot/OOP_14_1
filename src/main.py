@@ -72,7 +72,9 @@ class Category:
                f"Количество товаров: {len(self.__products)}\n" \
                f"Список товаров: {self.products}\n"
 
-    def add_product(self, product: Product):
+    def add_product(self, product):
+        if not isinstance(product, Product):
+            raise TypeError("В категорию можно добавлять только объекты класса Product")
         self.__products.append(product)
         Category.product_count += 1
 
