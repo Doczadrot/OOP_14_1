@@ -1,6 +1,12 @@
 import unittest
+from itertools import product
+from unittest.mock import patch
+import io
+import sys
+import contextlib
 
 from src.main import Product, Category
+from io import StringIO
 
 
 class TestProduct(unittest.TestCase):
@@ -10,7 +16,7 @@ class TestProduct(unittest.TestCase):
         product = Product(
             name="Тестовый продукт",
             description="Тестовое описание",
-            price=100.0,
+            price_=100.0,
             quantity=10
         )
         self.assertEqual(product.name, "Тестовый продукт")
@@ -23,7 +29,7 @@ class TestProduct(unittest.TestCase):
         product = Product(
             name="Тестовый продукт",
             description="Тестовое описание",
-            price="100.0",
+            price_="100.0",
             quantity=10
         )
         self.assertEqual(product.price, 100.0)
@@ -34,12 +40,27 @@ class TestProduct(unittest.TestCase):
                 as context:
             Product(name="",
                     description="Тестовое описание",
-                    price=100.0,
+                    price_=100.0,
                     quantity=10)
         self.assertEqual(
             str(context.exception),
             "Имя товара не может быть пустым"
         )
+    
+    def test_product_str(self):
+        product = Product("Тестовый продукт", "Тестовое описание", 100.1, 10)
+        product_str = str(product)
+        expected_str = "Тестовый продукт, 100.1 руб. Остаток: 10 шт."
+        self.assertEqual(product_str, expected_str)
+        
+    def test_product_add(self):
+        """Тест магического метода __add__ для сложения стоимостей товаров"""
+        product1 = Product("Товар 1", "Описание 1", 100.0, 2)
+        product2 = Product("Товар 2", "Описание 2", 200.0, 3)
+        total_price = product1 + product2
+        expected_price = (100.0 * 2) + (200.0 * 3)  # 800.0
+        self.assertEqual(total_price, expected_price)
+
 
     def test_product_creation_empty_description_spaces(self):
         """Тест на создание продукта с описанием, состоящим только из """
@@ -49,7 +70,7 @@ class TestProduct(unittest.TestCase):
             Product(
                 name="Тестовый продукт",
                 description="   ",
-                price=100.0,
+                price_=100.0,
                 quantity=10
             )
         self.assertEqual(
@@ -63,12 +84,60 @@ class TestProduct(unittest.TestCase):
                 as context:
             Product(name="Тестовый продукт",
                     description="",
-                    price=100.0,
+                    price_=100.0,
                     quantity=10)
         self.assertEqual(
             str(context.exception),
             "Описание товара не может быть пустым"
         )
+
+    def test_new_product_valid_data(self):
+        """Тест создания продукта с валидными данными через new_product"""
+        product_data = {
+            'name': 'MacBook Pro',
+            'description': '16-inch, 32GB RAM, 1TB SSD',
+            'price': '250000.0',
+            'quantity': 10
+        }
+        product = Product.new_product(product_data)
+        self.assertEqual(product.name, 'MacBook Pro')
+        self.assertEqual(product.description, '16-inch, 32GB RAM, 1TB SSD')
+        self.assertEqual(product.price, 250000.0)
+        self.assertEqual(product.quantity, 10)
+
+    def test_new_product_missing_name(self):
+        """Тест создания продукта с отсутствующим именем через new_product"""
+        product_data = {
+            'description': '16-inch, 32GB RAM, 1TB SSD',
+            'price': '250000.0',
+            'quantity': 10
+        }
+        with self.assertRaises(ValueError) as context:
+            Product.new_product(product_data)
+        self.assertEqual(str(context.exception), "Имя товара не может быть пустым")
+
+    def test_new_product_invalid_price(self):
+        """Тест создания продукта с некорректной ценой через new_product"""
+        product_data = {
+            'name': 'MacBook Pro',
+            'description': '16-inch, 32GB RAM, 1TB SSD',
+            'price': '-250000.0',
+            'quantity': 10
+        }
+        with self.assertRaises(ValueError) as context:
+            Product.new_product(product_data)
+        self.assertEqual(str(context.exception), "Цена должна быть положительной")
+
+    def test_new_product_missing_description(self):
+        """Тест создания продукта с отсутствующим описанием через new_product"""
+        product_data = {
+            'name': 'MacBook Pro',
+            'price': '250000.0',
+            'quantity': 10
+        }
+        with self.assertRaises(ValueError) as context:
+            Product.new_product(product_data)
+        self.assertEqual(str(context.exception), "Описание товара не может быть пустым")
 
 
 class TestCategory(unittest.TestCase):
@@ -93,26 +162,81 @@ class TestCategory(unittest.TestCase):
             15
         )
 
+    def test_category_product_getter(self):
+        category = Category("Тестовая категория", "Тестовое описание", products=[])
+        product1 = Product("Тест продукт1", "Описание1", 100, 5)
+        product2 = Product("Тест продукт2", "Описание2", 200, 10)
+
+        category.add_product(product1)
+        category.add_product(product2)
+
+        products_string = category.products
+        expected_string = f'{product1.name}, {product1.price} руб. Остаток: {product1.quantity} шт.\n' \
+                          f'{product2.name}, {product2.price} руб. Остаток: {product2.quantity} шт.'
+        self.assertEqual(products_string.strip(), expected_string.strip())
+
+
     def test_category_count_increment(self):
         """Тест подсчета количества категорий"""
         initial_count = Category.category_count
         Category("Ноутбуки", "Портативные компьютеры", [])
         self.assertEqual(Category.category_count, initial_count + 1)
 
+    def test_add_positive_price_and_quantity(self):
+        product1 = Product("Товар1", "описание",100 , 50)
+        product2 = Product("Товар2", "описание", 200, 100)
+        expentet_total = (100 * 50) + (200 * 100)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+    def test_add_zero_quantity(self):
+        product1 = Product("Товар1", "описание",2 , 0)
+        product2 = Product("Товар2", "описание", 3, 0)
+        expentet_total = (2 * 0) + (3 * 0)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+    def test_add_little_quantity(self):
+        product1 = Product("Товар1", "описание",2 , 1)
+        product2 = Product("Товар2", "описание", 3, 2)
+        expentet_total = (2 * 1) + (3 * 2)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+    def test_add_little_price(self):
+        product1 = Product("Товар1", "описание", 00.2, 1)
+        product2 = Product("Товар2", "описание", 00.3, 2)
+        expentet_total = (00.2 * 1) + (00.3 * 2)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+
+
     def test_product_count_calculation(self):
         """Тест подсчета общего количества продуктов"""
         self.assertEqual(Category.product_count, 0)
-        self.category.append_product(self.product1)
-        self.category.append_product(self.product2)
+        self.category.add_product(self.product1)
+        self.category.add_product(self.product2)
         Category("Ноутбуки", "Портативные компьютеры", [self.product1])
         self.assertEqual(Category.product_count, 3)
 
     def test_product_removal(self):
         """Тест уменьшения счётчика при удалении продукта"""
-        self.category.append_product(self.product1)
+        self.category.add_product(self.product1)
         initial_count = Category.product_count
         self.category.remove_product(self.product1)
         self.assertEqual(Category.product_count, initial_count - 1)
+        
+    def test_private_products_encapsulation(self):
+        """Проверка невозможности прямого доступа к списку продуктов"""
+        with self.assertRaises(AttributeError):
+            _ = self.category.__products
+
+    def test_products_list_format(self):
+        """Проверка формата списка продуктов"""
+        self.category.add_product(self.product1)
+        expected = "Iphone 15, 210000.0 руб. Остаток: 8 шт."
+        self.assertEqual(self.category.products.strip(), expected)
 
 
 class TestMainExecution(unittest.TestCase):
@@ -142,3 +266,38 @@ class TestMainExecution(unittest.TestCase):
         self.assertIn('Xiaomi Redmi Note 11', output)
         self.assertIn('1024GB, Синий', output)
         self.assertIn('31000.0', output)
+
+    def test_price_setter_valid_value(self):
+        """Проверка установки корректной цены"""
+        product = Product("Тест", "Тест", 100.0, 5)
+        product.price = 200.0
+        self.assertEqual(product.price, 200.0)
+
+    def test_price_setter_invalid_values(self):
+        """Проверка реакции на невалидные значения цены"""
+        product = Product("Тест", "Тест", 100.0, 5)
+        
+        # Тест нулевой цены
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            product.price = 0
+            self.assertEqual(product.price, 100.0)
+            self.assertIn("Цена не должна быть нулевая или отрицательная", buf.getvalue())
+
+        # Тест отрицательной цены
+        with io.StringIO() as buf, contextlib.redirect_stdout(buf):
+            product.price = -50
+            self.assertEqual(product.price, 100.0)
+            self.assertIn("Цена не должна быть нулевая или отрицательная", buf.getvalue())
+
+    def test_price_setter_negative_value(self):
+        """Тест сеттера цены с отрицательным значением"""
+        product = Product(
+            name="Test Product",
+            description="Test Description",
+            price_=100.0,
+            quantity=10
+        )
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            product.price = -50.0
+            self.assertIn("Цена не должна быть нулевая или отрицательная", fake_out.getvalue().strip())
+        self.assertEqual(product.price, 100.0)
