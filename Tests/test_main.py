@@ -1,4 +1,5 @@
 import unittest
+from itertools import product
 from unittest.mock import patch
 import io
 import sys
@@ -45,6 +46,21 @@ class TestProduct(unittest.TestCase):
             str(context.exception),
             "Имя товара не может быть пустым"
         )
+    
+    def test_product_str(self):
+        product = Product("Тестовый продукт", "Тестовое описание", 100.1, 10)
+        product_str = str(product)
+        expected_str = "Тестовый продукт, 100.1 руб. Остаток: 10 шт."
+        self.assertEqual(product_str, expected_str)
+        
+    def test_product_add(self):
+        """Тест магического метода __add__ для сложения стоимостей товаров"""
+        product1 = Product("Товар 1", "Описание 1", 100.0, 2)
+        product2 = Product("Товар 2", "Описание 2", 200.0, 3)
+        total_price = product1 + product2
+        expected_price = (100.0 * 2) + (200.0 * 3)  # 800.0
+        self.assertEqual(total_price, expected_price)
+
 
     def test_product_creation_empty_description_spaces(self):
         """Тест на создание продукта с описанием, состоящим только из """
@@ -146,11 +162,55 @@ class TestCategory(unittest.TestCase):
             15
         )
 
+    def test_category_product_getter(self):
+        category = Category("Тестовая категория", "Тестовое описание", products=[])
+        product1 = Product("Тест продукт1", "Описание1", 100, 5)
+        product2 = Product("Тест продукт2", "Описание2", 200, 10)
+
+        category.add_product(product1)
+        category.add_product(product2)
+
+        products_string = category.products
+        expected_string = f'{product1.name}, {product1.price} руб. Остаток: {product1.quantity} шт.\n' \
+                          f'{product2.name}, {product2.price} руб. Остаток: {product2.quantity} шт.'
+        self.assertEqual(products_string.strip(), expected_string.strip())
+
+
     def test_category_count_increment(self):
         """Тест подсчета количества категорий"""
         initial_count = Category.category_count
         Category("Ноутбуки", "Портативные компьютеры", [])
         self.assertEqual(Category.category_count, initial_count + 1)
+
+    def test_add_positive_price_and_quantity(self):
+        product1 = Product("Товар1", "описание",100 , 50)
+        product2 = Product("Товар2", "описание", 200, 100)
+        expentet_total = (100 * 50) + (200 * 100)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+    def test_add_zero_quantity(self):
+        product1 = Product("Товар1", "описание",2 , 0)
+        product2 = Product("Товар2", "описание", 3, 0)
+        expentet_total = (2 * 0) + (3 * 0)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+    def test_add_little_quantity(self):
+        product1 = Product("Товар1", "описание",2 , 1)
+        product2 = Product("Товар2", "описание", 3, 2)
+        expentet_total = (2 * 1) + (3 * 2)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+    def test_add_little_price(self):
+        product1 = Product("Товар1", "описание", 00.2, 1)
+        product2 = Product("Товар2", "описание", 00.3, 2)
+        expentet_total = (00.2 * 1) + (00.3 * 2)
+        actual_total = product1 + product2
+        self.assertEqual(expentet_total, actual_total)
+
+
 
     def test_product_count_calculation(self):
         """Тест подсчета общего количества продуктов"""

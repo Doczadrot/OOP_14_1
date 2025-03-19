@@ -1,3 +1,8 @@
+from statistics import quantiles
+
+from sqlalchemy.sql.base import elements
+
+
 class Product:
     """Класс, представляющий товар."""
 
@@ -20,6 +25,26 @@ class Product:
         self.description = description
         self._price = price_  # Приватный атрибут
         self.quantity = quantity
+
+    def __str__(self):
+        """Метод возвращает в строковом значении Имя продукта +  цену + количество"""
+        return f'{self.name}, {self._price} руб. Остаток: {self.quantity} шт.'
+
+    def __add__(self, other):
+        price_product_1 = self._price # Цена товара №1
+        quantity_product_1 = self.quantity # Количество товара №1
+        # Сумарная стоимость товара №1
+        total_price_product_1 =  price_product_1 * quantity_product_1
+
+        price_product_2 = other._price # Цена товара №2
+        quantity_product_2 = other.quantity # Количество товара №2
+        # Сумарная стоимость товара №2
+        total_price_product_2 = price_product_2 * quantity_product_2
+        # Расчитываем общую стоимость товаров
+        total_price_all_product = total_price_product_2 + total_price_product_1
+        return total_price_all_product
+
+
 
     @property
     def price(self):
@@ -58,15 +83,19 @@ class Category:
         self.description = description
         self.__products = products
 
+    def __str__(self):
+        total_quantity = 0
+        for product in self.__products:
+            total_quantity += product.quantity
+        return f'{self.name}, количество продуктов: {total_quantity} шт.'
+
     @property
     def products(self):
         """Возвращает список продуктов в виде строки."""
-        return "\n".join(
-            f"{product.name}, {product.price} руб. Остаток: {product.quantity} шт."
-            for product in self.__products
-        )
+        return "\n".join(str(product) for product in self.__products)
 
     def __str__(self):
+        """Магический метод для строкового представления категории."""
         return f"Категория: {self.name}\n" \
                f"Описание: {self.description}\n" \
                f"Количество товаров: {len(self.__products)}\n" \
