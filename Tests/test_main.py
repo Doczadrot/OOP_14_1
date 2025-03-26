@@ -5,7 +5,7 @@ import io
 import sys
 import contextlib
 
-from src.main import Product, Category
+from src.main import Product, Category, Smartphone, LawnGrass
 from io import StringIO
 
 
@@ -301,3 +301,28 @@ class TestMainExecution(unittest.TestCase):
             product.price = -50.0
             self.assertIn("Цена не должна быть нулевая или отрицательная", fake_out.getvalue().strip())
         self.assertEqual(product.price, 100.0)
+class TestInheritedClasses(unittest.TestCase):
+    def test_smartphone_creation(self):
+        smartphone = Smartphone(
+            name="Test Phone",
+            description="A test smartphone",
+            price_=500.0,
+            quantity=5,
+            efficiency="High",
+            model="TestModel",
+            memory="64GB",
+            color="Black"
+        )
+        self.assertIsNotNone(smartphone)
+
+    def test_lawnGrass_creation(self):
+        lawnGrass = LawnGrass(name="Test name", description="Test description",
+            price_=500.20, quantity=12,
+            country="Germany", germination_period=30,
+            color="черный")
+        self.assertIsNotNone(lawnGrass)
+
+
+
+
+

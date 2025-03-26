@@ -25,12 +25,15 @@ class Product:
         self.description = description
         self._price = price_  # Приватный атрибут
         self.quantity = quantity
-
+        
     def __str__(self):
         """Метод возвращает в строковом значении Имя продукта +  цену + количество"""
         return f'{self.name}, {self._price} руб. Остаток: {self.quantity} шт.'
 
     def __add__(self, other):
+        if type(self) != type(other):
+             raise TypeError("Нельзя складывать товары разных типов!")
+
         price_product_1 = self._price # Цена товара №1
         quantity_product_1 = self.quantity # Количество товара №1
         # Сумарная стоимость товара №1
@@ -43,9 +46,7 @@ class Product:
         # Расчитываем общую стоимость товаров
         total_price_all_product = total_price_product_2 + total_price_product_1
         return total_price_all_product
-
-
-
+        
     @property
     def price(self):
         """Геттер для цены."""
@@ -58,7 +59,7 @@ class Product:
             print("Цена не должна быть нулевая или отрицательная")
         else:
             self._price = value
-
+            
     @classmethod
     def new_product(cls, product_info: dict):
         """Создаёт новый объект Product из словаря параметров."""
@@ -68,6 +69,21 @@ class Product:
             price_=product_info.get('price'),
             quantity=product_info.get('quantity')
         )
+
+class Smartphone(Product):
+    def __init__(self, name: str, description: str, price_: float, quantity: int, efficiency, model, memory, color):
+        super().__init__(name, description, price_, quantity)
+        self.efficiency = efficiency
+        self.model = model
+        self.memory = memory
+        self.color = color
+
+class LawnGrass(Product):
+    def __init__(self, name: str, description: str, price_: float, quantity: int, country: str, germination_period: int, color: str):
+        super().__init__(name, description, price_, quantity)
+        self.country = country
+        self.germination_period = germination_period
+        self.color = color
 
 
 class Category:
@@ -103,7 +119,7 @@ class Category:
 
     def add_product(self, product):
         if not isinstance(product, Product):
-            raise TypeError("В категорию можно добавлять только объекты класса Product")
+            raise TypeError("В категорию можно добавлять только объекты класса Product или его наследников")
         self.__products.append(product)
         Category.product_count += 1
 
@@ -145,19 +161,19 @@ def main():
     print(
         f"{product1.name}\n"
         f"{product1.description}\n"
-        f"{product1.price}\n"
+        f"{product1._price}\n"
         f"{product1.quantity}"
     )
     print(
         f"\n{product2.name}\n"
         f"{product2.description}\n"
-        f"{product2.price}\n"
+        f"{product2._price}\n"
         f"{product2.quantity}"
     )
     print(
         f"\n{product3.name}\n"
         f"{product3.description}\n"
-        f"{product3.price}\n"
+        f"{product3._price}\n"
         f"{product3.quantity}"
     )
 
