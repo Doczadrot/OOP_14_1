@@ -1,51 +1,72 @@
 from statistics import quantiles
 
 from sqlalchemy.sql.base import elements
+from abc import ABC, abstractmethod
 
+class CreatLogMixin:
+    def __init__(self, *args, **kwargs):
+        print(f"Создан объект класса: {self.__class__.__name__}")
+        print(f"Переданные аргументы: args={args}, kwargs={kwargs}")
+        super().__init__(*args, **kwargs)
 
-class Product:
-    """Класс, представляющий товар."""
-
+class BaseProduct(ABC):
     def __init__(self, name: str, description: str, price_: float, quantity: int):
-        try:
-            price_ = float(price_)
-        except ValueError as e:
-            raise ValueError(f"Не удалось преобразовать строку в float: '{price_}'") from e
-
-        if price_ <= 0:
-            raise ValueError("Цена должна быть положительной")
-        if quantity < 0:
-            raise ValueError("Количество не может быть отрицательным")
-        if not name or not name.strip():
-            raise ValueError("Имя товара не может быть пустым")
-        if not description or not description.strip():
-            raise ValueError("Описание товара не может быть пустым")
-
         self.name = name
         self.description = description
         self._price = price_  # Приватный атрибут
         self.quantity = quantity
-        
     def __str__(self):
         """Метод возвращает в строковом значении Имя продукта +  цену + количество"""
         return f'{self.name}, {self._price} руб. Остаток: {self.quantity} шт.'
 
+    @abstractmethod
+    def calculate_total_value(self):
+        pass
+
+
+class Product(CreatLogMixin, BaseProduct):
+    """Класс, представляющий товар."""
+
+    def __init__(self, name: str, description: str, price_: float, quantity: int):
+
+        super().__init__(name, description, price_, quantity)
+        # try:
+        #     price_ = float(price_)
+        # except ValueError as e:
+        #     raise ValueError(f"Не удалось преобразовать строку в float: '{price_}'") from e
+        #
+        # if price_ <= 0:
+        #     raise ValueError("Цена должна быть положительной")
+        # if quantity < 0:
+        #     raise ValueError("Количество не может быть отрицательным")
+        # if not name or not name.strip():
+        #     raise ValueError("Имя товара не может быть пустым")
+        # if not description or not description.strip():
+        #     raise ValueError("Описание товара не может быть пустым")
+
+
+    # def __str__(self):
+    #     """Метод возвращает в строковом значении Имя продукта +  цену + количество"""
+    #     return f'{self.name}, {self._price} руб. Остаток: {self.quantity} шт.'
+
     def __add__(self, other):
         if type(self) != type(other):
              raise TypeError("Нельзя складывать товары разных типов!")
+    def calculate_total_value(self):
+        return self._price * self.quantity
 
-        price_product_1 = self._price # Цена товара №1
-        quantity_product_1 = self.quantity # Количество товара №1
-        # Сумарная стоимость товара №1
-        total_price_product_1 =  price_product_1 * quantity_product_1
-
-        price_product_2 = other._price # Цена товара №2
-        quantity_product_2 = other.quantity # Количество товара №2
-        # Сумарная стоимость товара №2
-        total_price_product_2 = price_product_2 * quantity_product_2
-        # Расчитываем общую стоимость товаров
-        total_price_all_product = total_price_product_2 + total_price_product_1
-        return total_price_all_product
+        # price_product_1 = self._price # Цена товара №1
+        # quantity_product_1 = self.quantity # Количество товара №1
+        # # Сумарная стоимость товара №1
+        # total_price_product_1 =  price_product_1 * quantity_product_1
+        #
+        # price_product_2 = other._price # Цена товара №2
+        # quantity_product_2 = other.quantity # Количество товара №2
+        # # Сумарная стоимость товара №2
+        # total_price_product_2 = price_product_2 * quantity_product_2
+        # # Расчитываем общую стоимость товаров
+        # total_price_all_product = total_price_product_2 + total_price_product_1
+        # return total_price_all_product
         
     @property
     def price(self):
@@ -131,6 +152,7 @@ class Category:
 
 
 def main():
+    new_product = Product("Тестовый продукт", "Описание для теста", 100.0, 5)
     product1 = Product(
         "Samsung Galaxy S23 Ultra",
         "256GB, Серый цвет, 200MP камера",

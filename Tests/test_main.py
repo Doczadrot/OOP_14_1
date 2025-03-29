@@ -34,6 +34,14 @@ class TestProduct(unittest.TestCase):
         )
         self.assertEqual(product.price, 100.0)
 
+    def test_product_creation_logs(self):
+        with contextlib.redirect_stdout(StringIO()) as captured_output:
+            test_product = Product("Тестовый продукт", "Описание для теста", 100.0, 5)
+        output = captured_output.getvalue()
+        self.assertIn("Создан объект класса: Product", output)
+        self.assertIn("Переданные аргументы: args=('Тестовый продукт', 'Описание для теста', 100.0, 5), kwargs={}",
+                      output)
+
     def test_product_creation_empty_name_empty_string(self):
         """Тест на создание продукта с пустым именем (пустая строка)."""
         with self.assertRaises(ValueError) \
