@@ -3,16 +3,19 @@ from statistics import quantiles
 from sqlalchemy.sql.base import elements
 from abc import ABC, abstractmethod
 
-class CreatLogMixin:
+class CreateLogMixin:
     def __init__(self, *args, **kwargs):
         print(f"Создан объект класса: {self.__class__.__name__}")
-        print(f"Переданные аргументы: args={args}, kwargs={kwargs}")
+        # Сохраняем оригинальные аргументы без преобразования в float
+        original_args = args
+        print(f"Переданные аргументы: args={original_args}, kwargs={kwargs}")
         super().__init__(*args, **kwargs)
 
 class BaseProduct(ABC):
     def __init__(self, name: str, description: str, price_: float, quantity: int):
         self.name = name
         self.description = description
+        # Сохраняем значение без преобразования
         self._price = price_  # Приватный атрибут
         self.quantity = quantity
     def __str__(self):
@@ -24,12 +27,28 @@ class BaseProduct(ABC):
         pass
 
 
-class Product(CreatLogMixin, BaseProduct):
+class Product(CreateLogMixin, BaseProduct):
     """Класс, представляющий товар."""
 
     def __init__(self, name: str, description: str, price_: float, quantity: int):
-
+        if not name or not name.strip():
+            raise ValueError("Имя товара не может быть пустым")
+        if not description or not description.strip():
+            raise ValueError("Описание товара не может быть пустым")
+            
+        # Сначала вызываем миксин с оригинальными аргументами
         super().__init__(name, description, price_, quantity)
+        
+        # Затем преобразуем цену в float
+        try:
+            self._price = float(price_)
+        except ValueError as e:
+            raise ValueError(f"Не удалось преобразовать строку в float: '{price_}'") from e
+        
+        if self._price <= 0:
+            raise ValueError("Цена должна быть положительной")
+        if quantity < 0:
+            raise ValueError("Количество не может быть отрицательным")
         # try:
         #     price_ = float(price_)
         # except ValueError as e:
@@ -52,6 +71,18 @@ class Product(CreatLogMixin, BaseProduct):
     def __add__(self, other):
         if type(self) != type(other):
              raise TypeError("Нельзя складывать товары разных типов!")
+        price_product_1 = self._price # Цена товара №1
+        quantity_product_1 = self.quantity # Количество товара №1
+        # Сумарная стоимость товара №1
+        total_price_product_1 =  price_product_1 * quantity_product_1
+        
+        price_product_2 = other._price # Цена товара №2
+        quantity_product_2 = other.quantity # Количество товара №2
+        # Сумарная стоимость товара №2
+        total_price_product_2 = price_product_2 * quantity_product_2
+        # Расчитываем общую стоимость товаров
+        total_price_all_product = total_price_product_2 + total_price_product_1
+        return total_price_all_product
     def calculate_total_value(self):
         return self._price * self.quantity
 

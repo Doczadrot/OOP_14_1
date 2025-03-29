@@ -5,8 +5,9 @@ import io
 import sys
 import contextlib
 
-from src.main import Product, Category, Smartphone, LawnGrass
+from src.main import Product, Category, Smartphone, LawnGrass, BaseProduct, CreateLogMixin
 from io import StringIO
+from abc import ABC, abstractmethod
 
 
 class TestProduct(unittest.TestCase):
@@ -233,6 +234,7 @@ class TestCategory(unittest.TestCase):
         self.category.add_product(self.product1)
         initial_count = Category.product_count
         self.category.remove_product(self.product1)
+        self.assertEqual(len(self.category._Category__products), 0)
         self.assertEqual(Category.product_count, initial_count - 1)
         
     def test_private_products_encapsulation(self):
@@ -310,6 +312,18 @@ class TestMainExecution(unittest.TestCase):
             self.assertIn("Цена не должна быть нулевая или отрицательная", fake_out.getvalue().strip())
         self.assertEqual(product.price, 100.0)
 class TestInheritedClasses(unittest.TestCase):
+    def setUp(self):
+        self.product1 = Product(
+            "Iphone 15",
+            "512GB, Gray space",
+            210000.0,
+            8
+        )
+        self.category = Category(
+            "Смартфоны",
+            "Мобильные устройства",
+            products=[]
+        )
     def test_smartphone_creation(self):
         smartphone = Smartphone(
             name="Test Phone",
@@ -322,13 +336,56 @@ class TestInheritedClasses(unittest.TestCase):
             color="Black"
         )
         self.assertIsNotNone(smartphone)
+        # Проверка, что Smartphone является наследником Product
+        self.assertTrue(issubclass(Smartphone, Product))
+        # Проверка атрибутов Smartphone
+        self.assertEqual(smartphone.name, "Test Phone")
+        self.assertEqual(smartphone.description, "A test smartphone")
+        self.assertEqual(smartphone.price, 500.0)
+        self.assertEqual(smartphone.quantity, 5)
+        self.assertEqual(smartphone.efficiency, "High")
+        self.assertEqual(smartphone.model, "TestModel")
+        self.assertEqual(smartphone.memory, "64GB")
+        self.assertEqual(smartphone.color, "Black")
+        # Проверка метода calculate_total_value
+        self.assertEqual(smartphone.calculate_total_value(), 500.0 * 5)
 
-    def test_lawnGrass_creation(self):
-        lawnGrass = LawnGrass(name="Test name", description="Test description",
-            price_=500.20, quantity=12,
-            country="Germany", germination_period=30,
-            color="черный")
-        self.assertIsNotNone(lawnGrass)
+    def test_lawn_grass_creation(self):
+        """Тест создания и проверки объекта класса LawnGrass"""
+        lawn_grass = LawnGrass(
+            name="Premium Grass",
+            description="Высококачественная газонная трава",
+            price_=1500.0,
+            quantity=10,
+            country="Россия",
+            germination_period=14,
+            color="Зеленый"
+        )
+        self.assertIsNotNone(lawn_grass)
+        # Проверка, что LawnGrass является наследником Product
+        self.assertTrue(issubclass(LawnGrass, Product))
+        # Проверка атрибутов LawnGrass
+        self.assertEqual(lawn_grass.name, "Premium Grass")
+        self.assertEqual(lawn_grass.description, "Высококачественная газонная трава")
+        self.assertEqual(lawn_grass.price, 1500.0)
+        self.assertEqual(lawn_grass.quantity, 10)
+        self.assertEqual(lawn_grass.country, "Россия")
+        self.assertEqual(lawn_grass.germination_period, 14)
+        self.assertEqual(lawn_grass.color, "Зеленый")
+        # Проверка метода calculate_total_value
+        self.assertEqual(lawn_grass.calculate_total_value(), 1500.0 * 10)
+
+    def test_mixin_logging(self):
+        with patch('sys.stdout', new=io.StringIO()) as fake_out:
+            product = Product("Test", "Desc", 100, 5)
+            self.assertIn("Создан объект класса: Product", fake_out.getvalue())
+            self.assertIn("Переданные аргументы: args=('Test', 'Desc', 100, 5), kwargs={}", fake_out.getvalue())
+
+    def test_category_str_output(self):
+        cat = Category("Test", "Desc", [self.product1])
+        output = str(cat)
+        self.assertIn("Категория: Test", output)
+        self.assertIn("Iphone 15, 210000.0 руб. Остаток: 8 шт.", output)
 
 
 
