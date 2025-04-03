@@ -99,6 +99,18 @@ class TestProduct(unittest.TestCase):
             str(context.exception),
             "Описание товара не может быть пустым"
         )
+        
+    def test_product_creation_zero_quantity(self):
+        """Тест на создание продукта с нулевым количеством."""
+        with self.assertRaises(ValueError) as context:
+            Product(name="Тестовый продукт",
+                    description="Тестовое описание",
+                    price_=100.0,
+                    quantity=0)
+        self.assertEqual(
+            str(context.exception),
+            "Товар с нулевым количеством не может быть добавлен"
+        )
 
     def test_new_product_valid_data(self):
         """Тест создания продукта с валидными данными через new_product"""
@@ -183,6 +195,18 @@ class TestCategory(unittest.TestCase):
         expected_string = f'{product1.name}, {product1.price} руб. Остаток: {product1.quantity} шт.\n' \
                           f'{product2.name}, {product2.price} руб. Остаток: {product2.quantity} шт.'
         self.assertEqual(products_string.strip(), expected_string.strip())
+        
+    def test_category_average_price(self):
+        """Тест метода average_price с товарами."""
+        product1 = Product("Товар1", "Описание1", 100, 5)
+        product2 = Product("Товар2", "Описание2", 200, 10)
+        category = Category("Тестовая категория", "Тестовое описание", [product1, product2])
+        self.assertEqual(category.average_price(), 150.0)
+        
+    def test_category_average_price_empty(self):
+        """Тест метода average_price с пустой категорией."""
+        category = Category("Пустая категория", "Тестовое описание", [])
+        self.assertEqual(category.average_price(), 0)
 
 
     def test_category_count_increment(self):
@@ -199,11 +223,10 @@ class TestCategory(unittest.TestCase):
         self.assertEqual(expentet_total, actual_total)
 
     def test_add_zero_quantity(self):
-        product1 = Product("Товар1", "описание",2 , 0)
-        product2 = Product("Товар2", "описание", 3, 0)
-        expentet_total = (2 * 0) + (3 * 0)
-        actual_total = product1 + product2
-        self.assertEqual(expentet_total, actual_total)
+        # Проверяем, что создание продукта с нулевым количеством вызывает исключение
+        with self.assertRaises(ValueError) as context:
+            product1 = Product("Товар1", "описание", 2, 0)
+        self.assertEqual(str(context.exception), "Товар с нулевым количеством не может быть добавлен")
 
     def test_add_little_quantity(self):
         product1 = Product("Товар1", "описание",2 , 1)

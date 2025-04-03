@@ -35,6 +35,8 @@ class Product(CreateLogMixin, BaseProduct):
             raise ValueError("Имя товара не может быть пустым")
         if not description or not description.strip():
             raise ValueError("Описание товара не может быть пустым")
+        if quantity == 0:
+            raise ValueError("Товар с нулевым количеством не может быть добавлен")
             
         # Сначала вызываем миксин с оригинальными аргументами
         super().__init__(name, description, price_, quantity)
@@ -83,6 +85,8 @@ class Product(CreateLogMixin, BaseProduct):
         # Расчитываем общую стоимость товаров
         total_price_all_product = total_price_product_2 + total_price_product_1
         return total_price_all_product
+
+
     def calculate_total_value(self):
         return self._price * self.quantity
 
@@ -156,6 +160,21 @@ class Category:
         for product in self.__products:
             total_quantity += product.quantity
         return f'{self.name}, количество продуктов: {total_quantity} шт.'
+
+    def average_price(self):# расчитываем средний ценник
+        all_price_category = 0
+        for i in self.__products:
+            all_price_category += i.price
+        try:
+            total_average_price = all_price_category / len(self.__products)
+            return total_average_price
+        except ZeroDivisionError:
+            return 0
+
+
+
+
+
 
     @property
     def products(self):
