@@ -1,0 +1,13 @@
+# Created by coverage.py
+# Ignore temporary files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Don't ignore HTML report files
+!*.html
+!*.js
+!*.css
+!*.png
+!*.json
